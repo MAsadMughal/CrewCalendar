@@ -27,12 +27,12 @@ export async function verifyPassword(password: string, hashedPassword: string): 
 }
 
 export function generateToken(payload: JWTPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: TOKEN_EXPIRY });
+  return jwt.sign(payload, JWT_SECRET as string, { expiresIn: TOKEN_EXPIRY });
 }
 
 export function verifyToken(token: string): JWTPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as JWTPayload;
+    return jwt.verify(token, JWT_SECRET as string) as JWTPayload;
   } catch {
     return null;
   }
@@ -41,7 +41,7 @@ export function verifyToken(token: string): JWTPayload | null {
 export async function getAuthUser() {
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token")?.value;
-  
+
   if (!token) {
     return null;
   }

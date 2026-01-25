@@ -31,20 +31,20 @@ export function isDateStringWeekend(dateStr: string): boolean {
   return isWeekend(parseDateString(dateStr));
 }
 
-export function isDateHoliday(dateStr: string, holidays: Holiday[]): Holiday | undefined {
+export function isDateHoliday<T extends { date: string }>(dateStr: string, holidays: T[]): T | undefined {
   return holidays.find(h => h.date === dateStr);
 }
 
-export function isEmployeeAbsent(dateStr: string, employee: Employee): boolean {
+export function isEmployeeAbsent<T extends { plannedAbsences?: string[] | null }>(dateStr: string, employee: T): boolean {
   return (employee.plannedAbsences || []).includes(dateStr);
 }
 
-export function isEmployeeBookedOnDate(
+export function isEmployeeBookedOnDate<T extends { employeeId: string; date: string }>(
   dateStr: string,
   employeeId: string,
-  bookings: Booking[]
-): Booking | undefined {
-  return bookings.find(b => 
+  bookings: T[]
+): T | undefined {
+  return bookings.find(b =>
     b.employeeId === employeeId && b.date === dateStr
   );
 }
@@ -60,20 +60,20 @@ export function canBookEmployee(
   if (!assignedEmployees.includes(employee.id)) {
     return { canBook: false, reason: "Employee not assigned to this project" };
   }
-  
+
   if (isDateHoliday(dateStr, holidays)) {
     return { canBook: false, reason: "Holiday" };
   }
-  
+
   if (isEmployeeAbsent(dateStr, employee)) {
     return { canBook: false, reason: "Employee is absent" };
   }
-  
+
   const existingBooking = isEmployeeBookedOnDate(dateStr, employee.id, allBookings);
   if (existingBooking && existingBooking.projectId !== projectId) {
     return { canBook: false, reason: "Already booked on another project" };
   }
-  
+
   return { canBook: true };
 }
 
@@ -81,12 +81,12 @@ export function getDateStringsBetween(startStr: string, endStr: string): string[
   const dates: string[] = [];
   let current = parseDateString(startStr);
   const end = parseDateString(endStr);
-  
+
   while (current <= end) {
     dates.push(toDateString(current));
     current = addDays(current, 1);
   }
-  
+
   return dates;
 }
 
@@ -100,31 +100,34 @@ export function filterLoginsLastMonth(logins: Date[]): Date[] {
   return logins.filter(login => new Date(login) > thirtyDaysAgo);
 }
 
-export function getTeamColorForDate(
+export function getTeamColorForDate<
+  TBooking extends { projectId: string; date: string; employeeId: string },
+  TEmployee extends { id: string; teamColor: string }
+>(
   dateStr: string,
   projectId: string,
-  bookings: Booking[],
-  employees: Employee[]
+  bookings: TBooking[],
+  employees: TEmployee[]
 ): string {
   const dayBookings = bookings.filter(
     b => b.projectId === projectId && b.date === dateStr
   );
-  
+
   if (dayBookings.length === 0) {
     return "transparent";
   }
-  
+
   const teamColors = dayBookings.map(b => {
     const employee = employees.find(e => e.id === b.employeeId);
     return employee?.teamColor || "#9CA3AF";
   });
-  
+
   const uniqueColors = [...new Set(teamColors)];
-  
+
   if (uniqueColors.length === 1) {
     return uniqueColors[0];
   }
-  
+
   return "#D1D5DB";
 }
 

@@ -12,7 +12,7 @@ const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    
+
     const validation = loginSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json(
@@ -22,11 +22,11 @@ export async function POST(request: NextRequest) {
     }
 
     const { email, password } = validation.data;
-    
+
     const ip = request.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
     const rateLimitKey = `login:${ip}:${email}`;
     const rateCheck = checkRateLimit(rateLimitKey);
-    
+
     if (!rateCheck.allowed) {
       const minutesRemaining = Math.ceil(rateCheck.resetInMs / 60000);
       return NextResponse.json(
@@ -55,8 +55,8 @@ export async function POST(request: NextRequest) {
     const isValid = await verifyPassword(password, user.password);
     if (!isValid) {
       const failedAttempts = (user.failedLoginAttempts || 0) + 1;
-      const lockoutUntil = failedAttempts >= MAX_FAILED_ATTEMPTS 
-        ? new Date(now.getTime() + LOCKOUT_DURATION_MS) 
+      const lockoutUntil = failedAttempts >= MAX_FAILED_ATTEMPTS
+        ? new Date(now.getTime() + LOCKOUT_DURATION_MS)
         : null;
 
       await db.update(users)

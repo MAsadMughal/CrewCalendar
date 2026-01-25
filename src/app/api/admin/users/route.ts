@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth";
+
+export const dynamic = 'force-dynamic';
 import { db } from "@/lib/db";
 import { users } from "@shared/schema";
 
 export async function GET() {
   try {
     const authUser = await getAuthUser();
-    
+
     if (!authUser) {
       return NextResponse.json(
         { error: "Not authenticated" },

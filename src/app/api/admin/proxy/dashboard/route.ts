@@ -4,10 +4,12 @@ import { projects, employees, holidays, bookings, users } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
 import { getAuthUser } from "@/lib/auth";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const authUser = await getAuthUser();
-    
+
     if (!authUser) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
@@ -18,7 +20,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId");
-    
+
     if (!userId) {
       return NextResponse.json({ error: "userId is required" }, { status: 400 });
     }
@@ -32,13 +34,13 @@ export async function GET(request: NextRequest) {
       db.select().from(projects)
         .where(eq(projects.userId, userId))
         .orderBy(sql`CAST(${projects.sortOrder} AS INTEGER)`),
-      
+
       db.select().from(employees)
         .where(eq(employees.userId, userId)),
-      
+
       db.select().from(holidays)
         .where(eq(holidays.userId, userId)),
-      
+
       db.select({
         id: bookings.id,
         date: bookings.date,

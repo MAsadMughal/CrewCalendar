@@ -4,6 +4,8 @@ import { projects, employees, holidays, bookings } from "@shared/schema";
 import { eq, inArray, sql } from "drizzle-orm";
 import { getAuthUser } from "@/lib/auth";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const user = await getAuthUser();
@@ -15,13 +17,13 @@ export async function GET(request: NextRequest) {
       db.select().from(projects)
         .where(eq(projects.userId, user.id))
         .orderBy(sql`CAST(${projects.sortOrder} AS INTEGER)`),
-      
+
       db.select().from(employees)
         .where(eq(employees.userId, user.id)),
-      
+
       db.select().from(holidays)
         .where(eq(holidays.userId, user.id)),
-      
+
       db.select({
         id: bookings.id,
         date: bookings.date,

@@ -13,7 +13,7 @@ export function useProjects() {
   return useQuery<Project[]>({
     queryKey: isAdmin ? ["admin-projects", targetUserId] : ["projects"],
     queryFn: async () => {
-      const url = isAdmin 
+      const url = isAdmin
         ? `/api/admin/proxy/projects?userId=${targetUserId}`
         : "/api/projects";
       const res = await fetch(url);
@@ -44,10 +44,10 @@ export function useCreateProject() {
   const pushUndo = adminMode?.pushUndo;
 
   return useMutation({
-    mutationFn: async (data: Omit<InsertProject, "id" | "createdAt" | "updatedAt">) => {
+    mutationFn: async (data: Omit<InsertProject, "id" | "createdAt" | "updatedAt" | "userId">) => {
       const url = isAdmin ? "/api/admin/proxy/projects" : "/api/projects";
       const body = isAdmin ? { ...data, userId: targetUserId } : data;
-      
+
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -65,7 +65,7 @@ export function useCreateProject() {
       queryClient.invalidateQueries({ queryKey });
       queryClient.invalidateQueries({ queryKey: dashboardKey });
       toast({ title: "Project created successfully" });
-      
+
       if (isAdmin && pushUndo) {
         pushUndo({
           description: `Created project "${newProject.name}"`,
@@ -92,10 +92,10 @@ export function useUpdateProject() {
 
   return useMutation({
     mutationFn: async ({ id, ...data }: Partial<InsertProject> & { id: string }) => {
-      const url = isAdmin 
+      const url = isAdmin
         ? `/api/admin/proxy/projects/${id}`
         : `/api/projects/${id}`;
-      
+
       const res = await fetch(url, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -129,10 +129,10 @@ export function useDeleteProject() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const url = isAdmin 
+      const url = isAdmin
         ? `/api/admin/proxy/projects/${id}`
         : `/api/projects/${id}`;
-      
+
       const res = await fetch(url, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete project");
       return res.json();
@@ -159,10 +159,10 @@ export function useUpdateProjectOrder() {
 
   return useMutation({
     mutationFn: async (projectIds: string[]) => {
-      const url = isAdmin 
+      const url = isAdmin
         ? "/api/admin/proxy/projects/order"
         : "/api/projects/order";
-      
+
       const res = await fetch(url, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },

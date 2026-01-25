@@ -3,10 +3,12 @@ import { db } from "@/lib/db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
+export const dynamic = 'force-dynamic';
+
 async function notifyAdminOfVerifiedUser(userName: string, userEmail: string) {
   const resendApiKey = process.env.RESEND_API_KEY;
   const adminEmail = process.env.ADMIN_EMAIL;
-  
+
   if (!resendApiKey || !adminEmail) {
     return;
   }
@@ -78,7 +80,7 @@ export async function GET(request: NextRequest) {
     }
 
     const [user] = await db.select().from(users).where(eq(users.emailVerificationToken, token));
-    
+
     if (!user) {
       return NextResponse.redirect(new URL("/login?error=invalid_token", request.url));
     }

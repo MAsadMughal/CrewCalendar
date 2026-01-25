@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useLogin, useAuth } from "@/hooks/use-auth";
@@ -14,7 +14,7 @@ import { AuthLayout } from "@/components/auth/auth-layout";
 import { PasswordInput } from "@/components/auth/password-input";
 import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: user, isLoading: isAuthLoading } = useAuth();
@@ -22,11 +22,10 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const t = useTranslations("auth");
-  const tCommon = useTranslations("common");
-  
+
   const message = searchParams.get("message");
   const error = searchParams.get("error");
-  
+
   const getSuccessMessage = () => {
     switch (message) {
       case "email_verified":
@@ -37,7 +36,7 @@ export default function LoginPage() {
         return null;
     }
   };
-  
+
   const getErrorMessage = () => {
     switch (error) {
       case "missing_token":
@@ -50,7 +49,7 @@ export default function LoginPage() {
         return null;
     }
   };
-  
+
   const successMessage = getSuccessMessage();
   const errorMessage = getErrorMessage();
 
@@ -163,5 +162,17 @@ export default function LoginPage() {
         </form>
       </Card>
     </AuthLayout>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }
