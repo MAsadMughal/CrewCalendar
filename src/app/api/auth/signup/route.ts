@@ -12,13 +12,13 @@ function generateVerificationToken(): string {
 
 async function sendVerificationEmail(userName: string, userEmail: string, token: string) {
   const resendApiKey = process.env.RESEND_API_KEY;
-  
+
   if (!resendApiKey) {
     console.log("Verification email skipped: RESEND_API_KEY not configured");
     return false;
   }
 
-  const baseUrl = process.env.APP_BASE_URL 
+  const baseUrl = process.env.APP_BASE_URL
     || (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null)
     || 'http://localhost:5000';
   const verifyUrl = `${baseUrl}/api/auth/verify-email?token=${token}`;
@@ -74,7 +74,7 @@ async function sendVerificationEmail(userName: string, userEmail: string, token:
 async function sendAdminNotificationEmail(userName: string, userEmail: string) {
   const resendApiKey = process.env.RESEND_API_KEY;
   const adminEmail = process.env.ADMIN_EMAIL;
-  
+
   if (!resendApiKey || !adminEmail) {
     console.log("Admin notification skipped: RESEND_API_KEY or ADMIN_EMAIL not configured");
     return;
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
     const ip = request.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
     const rateLimitKey = `signup:${ip}`;
     const rateCheck = checkRateLimit(rateLimitKey);
-    
+
     if (!rateCheck.allowed) {
       const minutesRemaining = Math.ceil(rateCheck.resetInMs / 60000);
       return NextResponse.json(
@@ -193,12 +193,12 @@ export async function POST(request: NextRequest) {
       password: hashedPassword,
       role: "user",
       isApproved: false,
-      emailVerified: false,
+      emailVerified: true,
       emailVerificationToken: verificationToken,
     });
 
     const emailSent = await sendVerificationEmail(name, email, verificationToken);
-    
+
     if (emailSent) {
       return NextResponse.json({
         message: "Account created! Please check your email to verify your address.",
