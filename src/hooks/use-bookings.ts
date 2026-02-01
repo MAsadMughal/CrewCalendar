@@ -14,7 +14,7 @@ export function useBookings() {
   return useQuery<Booking[]>({
     queryKey: isAdmin ? ["admin-bookings", targetUserId] : ["bookings"],
     queryFn: async () => {
-      const url = isAdmin 
+      const url = isAdmin
         ? `/api/admin/proxy/bookings?userId=${targetUserId}`
         : "/api/bookings";
       const res = await fetch(url);
@@ -35,7 +35,7 @@ export function useCreateBooking() {
   return useMutation({
     mutationFn: async (data: Omit<InsertBooking, "id" | "createdAt" | "updatedAt">) => {
       const url = isAdmin ? "/api/admin/proxy/bookings" : "/api/bookings";
-      
+
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -53,7 +53,7 @@ export function useCreateBooking() {
       queryClient.invalidateQueries({ queryKey });
       queryClient.invalidateQueries({ queryKey: dashboardKey });
       toast({ title: "Booking created" });
-      
+
       if (isAdmin && pushUndo) {
         pushUndo({
           description: `Added booking on ${newBooking.date}`,
@@ -79,10 +79,10 @@ export function useDeleteBooking() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const url = isAdmin 
+      const url = isAdmin
         ? `/api/admin/proxy/bookings/${id}`
         : `/api/bookings/${id}`;
-      
+
       const res = await fetch(url, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete booking");
       return res.json();
@@ -111,7 +111,7 @@ export function useToggleBooking() {
     mutationFn: async (data: { date: Date | string; projectId: string; employeeId: string }) => {
       const dateStr = typeof data.date === 'string' ? data.date : toDateString(data.date);
       const url = isAdmin ? "/api/admin/proxy/bookings/toggle" : "/api/bookings/toggle";
-      
+
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -127,16 +127,89 @@ export function useToggleBooking() {
       }
       return res.json();
     },
-    onSuccess: (result, variables) => {
+    onMutate: async (variables) => {
+      const dateStr = typeof variables.date === 'string' ? variables.date : toDateString(variables.date);
       const queryKey = isAdmin ? ["admin-bookings", targetUserId] : ["bookings"];
       const dashboardKey = isAdmin ? ["admin-dashboard", targetUserId] : ["dashboard"];
-      queryClient.invalidateQueries({ queryKey });
-      queryClient.invalidateQueries({ queryKey: dashboardKey });
-      
+
+      await queryClient.cancelQueries({ queryKey });
+      await queryClient.cancelQueries({ queryKey: dashboardKey });
+
+      const previousBookings = queryClient.getQueryData<Booking[]>(queryKey);
+      const previousDashboard = queryClient.getQueryData<any>(dashboardKey);
+
+      if (previousDashboard) {
+        const isCurrentlyBooked = previousDashboard.bookings.some(
+          (b: Booking) => b.projectId === variables.projectId && b.employeeId === variables.employeeId && b.date === dateStr
+        );
+
+        let newBookings;
+        if (isCurrentlyBooked) {
+          newBookings = previousDashboard.bookings.filter(
+            (b: Booking) => !(b.projectId === variables.projectId && b.employeeId === variables.employeeId && b.date === dateStr)
+          );
+        } else {
+          const tempBooking: Booking = {
+            id: `temp-${Date.now()}`,
+            projectId: variables.projectId,
+            employeeId: variables.employeeId,
+            date: dateStr,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+          newBookings = [...previousDashboard.bookings, tempBooking];
+        }
+
+        queryClient.setQueryData(dashboardKey, {
+          ...previousDashboard,
+          bookings: newBookings,
+        });
+      }
+
+      if (previousBookings) {
+        const isCurrentlyBooked = previousBookings.some(
+          (b: Booking) => b.projectId === variables.projectId && b.employeeId === variables.employeeId && b.date === dateStr
+        );
+
+        let newBookings;
+        if (isCurrentlyBooked) {
+          newBookings = previousBookings.filter(
+            (b: Booking) => !(b.projectId === variables.projectId && b.employeeId === variables.employeeId && b.date === dateStr)
+          );
+        } else {
+          const tempBooking: Booking = {
+            id: `temp-${Date.now()}`,
+            projectId: variables.projectId,
+            employeeId: variables.employeeId,
+            date: dateStr,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+          newBookings = [...previousBookings, tempBooking];
+        }
+        queryClient.setQueryData(queryKey, newBookings);
+      }
+
+      return { previousBookings, previousDashboard, queryKey, dashboardKey };
+    },
+    onError: (err, variables, context) => {
+      if (context) {
+        queryClient.setQueryData(context.queryKey, context.previousBookings);
+        queryClient.setQueryData(context.dashboardKey, context.previousDashboard);
+      }
+    },
+    onSettled: (data, error, variables, context) => {
+      if (context) {
+        queryClient.invalidateQueries({ queryKey: context.queryKey });
+        queryClient.invalidateQueries({ queryKey: context.dashboardKey });
+      }
+    },
+    onSuccess: (result, variables) => {
       if (isAdmin && pushUndo) {
         const dateStr = typeof variables.date === 'string' ? variables.date : toDateString(variables.date);
         const action = result.action;
-        
+        const queryKey = isAdmin ? ["admin-bookings", targetUserId] : ["bookings"];
+
         pushUndo({
           description: action === "created" ? `Added booking on ${dateStr}` : `Removed booking on ${dateStr}`,
           undoFn: async () => {
@@ -167,11 +240,11 @@ export function useBulkCreateBookings() {
 
   return useMutation({
     mutationFn: async (data: { dates: (Date | string)[]; projectId: string; employeeId: string }) => {
-      const dateStrings = data.dates.map(d => 
+      const dateStrings = data.dates.map(d =>
         typeof d === 'string' ? d : toDateString(d)
       );
       const url = isAdmin ? "/api/admin/proxy/bookings/bulk" : "/api/bookings/bulk";
-      
+
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -188,14 +261,57 @@ export function useBulkCreateBookings() {
       }
       return res.json();
     },
-    onSuccess: (result) => {
+    onMutate: async (variables) => {
+      const dateStrings = variables.dates.map(d => typeof d === 'string' ? d : toDateString(d));
       const queryKey = isAdmin ? ["admin-bookings", targetUserId] : ["bookings"];
       const dashboardKey = isAdmin ? ["admin-dashboard", targetUserId] : ["dashboard"];
-      queryClient.invalidateQueries({ queryKey });
-      queryClient.invalidateQueries({ queryKey: dashboardKey });
+
+      await queryClient.cancelQueries({ queryKey });
+      await queryClient.cancelQueries({ queryKey: dashboardKey });
+
+      const previousBookings = queryClient.getQueryData<Booking[]>(queryKey);
+      const previousDashboard = queryClient.getQueryData<any>(dashboardKey);
+
+      const tempBookings: Booking[] = dateStrings.map(dateStr => ({
+        id: `temp-${Date.now()}-${dateStr}`,
+        projectId: variables.projectId,
+        employeeId: variables.employeeId,
+        date: dateStr,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }));
+
+      if (previousDashboard) {
+        queryClient.setQueryData(dashboardKey, {
+          ...previousDashboard,
+          bookings: [...previousDashboard.bookings, ...tempBookings],
+        });
+      }
+
+      if (previousBookings) {
+        queryClient.setQueryData(queryKey, [...previousBookings, ...tempBookings]);
+      }
+
+      return { previousBookings, previousDashboard, queryKey, dashboardKey };
+    },
+    onError: (err, variables, context) => {
+      if (context) {
+        queryClient.setQueryData(context.queryKey, context.previousBookings);
+        queryClient.setQueryData(context.dashboardKey, context.previousDashboard);
+      }
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+    onSettled: (data, error, variables, context) => {
+      if (context) {
+        queryClient.invalidateQueries({ queryKey: context.queryKey });
+        queryClient.invalidateQueries({ queryKey: context.dashboardKey });
+      }
+    },
+    onSuccess: (result) => {
       toast({ title: `${result.count || 0} bookings created` });
-      
+
       if (isAdmin && pushUndo && result.bookings?.length > 0) {
+        const queryKey = isAdmin ? ["admin-bookings", targetUserId] : ["bookings"];
         const bookingIds = result.bookings.map((b: { id: string }) => b.id);
         pushUndo({
           description: `Created ${result.count} bookings`,
@@ -211,9 +327,6 @@ export function useBulkCreateBookings() {
         });
       }
     },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    },
   });
 }
 
@@ -227,7 +340,7 @@ export function useBulkDeleteBookings() {
   return useMutation({
     mutationFn: async (bookingIds: string[]) => {
       const url = isAdmin ? "/api/admin/proxy/bookings/bulk" : "/api/bookings/bulk";
-      
+
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -242,15 +355,44 @@ export function useBulkDeleteBookings() {
       }
       return res.json();
     },
-    onSuccess: (data) => {
+    onMutate: async (bookingIds) => {
       const queryKey = isAdmin ? ["admin-bookings", targetUserId] : ["bookings"];
       const dashboardKey = isAdmin ? ["admin-dashboard", targetUserId] : ["dashboard"];
-      queryClient.invalidateQueries({ queryKey });
-      queryClient.invalidateQueries({ queryKey: dashboardKey });
-      toast({ title: `${data.count || 0} bookings removed` });
+
+      await queryClient.cancelQueries({ queryKey });
+      await queryClient.cancelQueries({ queryKey: dashboardKey });
+
+      const previousBookings = queryClient.getQueryData<Booking[]>(queryKey);
+      const previousDashboard = queryClient.getQueryData<any>(dashboardKey);
+
+      if (previousDashboard) {
+        queryClient.setQueryData(dashboardKey, {
+          ...previousDashboard,
+          bookings: previousDashboard.bookings.filter((b: Booking) => !bookingIds.includes(b.id)),
+        });
+      }
+
+      if (previousBookings) {
+        queryClient.setQueryData(queryKey, previousBookings.filter((b: Booking) => !bookingIds.includes(b.id)));
+      }
+
+      return { previousBookings, previousDashboard, queryKey, dashboardKey };
     },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    onError: (err, variables, context) => {
+      if (context) {
+        queryClient.setQueryData(context.queryKey, context.previousBookings);
+        queryClient.setQueryData(context.dashboardKey, context.previousDashboard);
+      }
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+    onSettled: (data, error, variables, context) => {
+      if (context) {
+        queryClient.invalidateQueries({ queryKey: context.queryKey });
+        queryClient.invalidateQueries({ queryKey: context.dashboardKey });
+      }
+    },
+    onSuccess: (data) => {
+      toast({ title: `${data.count || 0} bookings removed` });
     },
   });
 }

@@ -37,14 +37,14 @@ export default function HomePage() {
   const router = useRouter();
   const { data: user, isLoading: userLoading } = useAuth();
   const isAdmin = user?.role === "admin";
-  
+
   const { data: dashboardData, isLoading: dashboardLoading } = useDashboard();
-  
+
   const projects = dashboardData?.projects ?? [];
   const employees = dashboardData?.employees ?? [];
   const holidays = dashboardData?.holidays ?? [];
   const bookings = dashboardData?.bookings ?? [];
-  
+
   const updateProjectOrder = useUpdateProjectOrder();
   const updateProject = useUpdateProject();
 
@@ -138,10 +138,10 @@ export default function HomePage() {
   const filteredProjects = useMemo(() =>
     selectedEmployeeFilters.length > 0
       ? projects.filter((p) =>
-          (p.assignedEmployees || []).some((empId) =>
-            selectedEmployeeFilters.includes(empId),
-          ),
-        )
+        (p.assignedEmployees || []).some((empId) =>
+          selectedEmployeeFilters.includes(empId),
+        ),
+      )
       : projects,
     [projects, selectedEmployeeFilters]
   );

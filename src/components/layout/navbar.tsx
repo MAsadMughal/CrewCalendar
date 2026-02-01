@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Calendar, LogOut, Shield, User, Key, ChevronDown, Share2, Sun, Moon, Globe } from "lucide-react";
+import { Calendar, LogOut, Shield, User, Key, ChevronDown, Share2, Sun, Moon, Globe, Plus, ChevronLeft, ChevronRight, Home } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { ShareModal } from "@/components/modals/share-modal";
 import { useLocale } from "@/i18n/provider";
 import { locales, localeNames, type Locale } from "@/i18n/config";
 import type { User as UserType } from "@shared/schema";
+import { useUIStore } from "@/stores/ui-store";
 
 interface NavbarProps {
   user: UserType | { id: string; name: string; email: string; role: string } | null | undefined;
@@ -31,12 +32,12 @@ export function Navbar({ user }: NavbarProps) {
   const logout = useLogout();
   const [isOpen, setIsOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [isLangOpen, setIsLangOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const langDropdownRef = useRef<HTMLDivElement>(null);
   const { theme, setTheme } = useTheme();
   const { locale, setLocale } = useLocale();
   const t = useTranslations("navbar");
+
+  const { openHolidayModal, navigateCalendar, goToToday } = useUIStore();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -47,9 +48,6 @@ export function Navbar({ user }: NavbarProps) {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
-      }
-      if (langDropdownRef.current && !langDropdownRef.current.contains(event.target as Node)) {
-        setIsLangOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -64,23 +62,55 @@ export function Navbar({ user }: NavbarProps) {
         </div>
         <h1 className="text-xl font-bold text-gray-900 dark:text-white">CrewCalendar</h1>
       </Link>
-      
+
       <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1 mr-2 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigateCalendar(-7)}
+            className="h-7 w-7 p-0 hover:bg-white dark:hover:bg-gray-700 rounded-md"
+            title="Previous week"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => goToToday()}
+            className="h-7 px-2 text-xs font-medium hover:bg-white dark:hover:bg-gray-700 rounded-md"
+          >
+            <Home className="h-3.5 w-3.5 mr-1.5" />
+            Today
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigateCalendar(7)}
+            className="h-7 w-7 p-0 hover:bg-white dark:hover:bg-gray-700 rounded-md"
+            title="Next week"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
         {user && (
           <>
-            {user.role === "admin" && (
-              <Link href="/admin">
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Shield className="h-4 w-4" />
-                  {t("adminPanel")}
-                </Button>
-              </Link>
-            )}
+            {/* Holiday button for ALL users */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => openHolidayModal()}
+            >
+              <Plus className="h-4 w-4" />
+              Holiday
+            </Button>
 
+            {/* Share button only for non-admins */}
             {user.role !== "admin" && (
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 className="gap-2"
                 onClick={() => setIsShareModalOpen(true)}
               >
@@ -89,36 +119,8 @@ export function Navbar({ user }: NavbarProps) {
               </Button>
             )}
 
-            <div className="relative" ref={langDropdownRef}>
-              <button
-                onClick={() => setIsLangOpen(!isLangOpen)}
-                className="flex items-center gap-1.5 px-2 py-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm text-gray-700 dark:text-gray-300"
-              >
-                <Globe className="h-4 w-4" />
-                <span className="hidden sm:inline">{localeNames[locale]}</span>
-              </button>
-              {isLangOpen && (
-                <div className="absolute right-0 mt-2 w-32 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
-                  {locales.map((loc) => (
-                    <button
-                      key={loc}
-                      onClick={() => {
-                        setLocale(loc);
-                        setIsLangOpen(false);
-                      }}
-                      className={`flex items-center gap-2 w-full px-3 py-2 text-sm transition-colors ${
-                        locale === loc
-                          ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-                          : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      }`}
-                    >
-                      {localeNames[loc]}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            
+            {/* Language dropdown removed, moving to profile dropdown */}
+
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setIsOpen(!isOpen)}
@@ -145,7 +147,7 @@ export function Navbar({ user }: NavbarProps) {
                       </span>
                     )}
                   </div>
-                  
+
                   <Link
                     href="/profile"
                     onClick={() => setIsOpen(false)}
@@ -154,7 +156,7 @@ export function Navbar({ user }: NavbarProps) {
                     <User className="h-4 w-4" />
                     {t("profile")}
                   </Link>
-                  
+
                   <Link
                     href="/change-password"
                     onClick={() => setIsOpen(false)}
@@ -171,7 +173,29 @@ export function Navbar({ user }: NavbarProps) {
                     {mounted && theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                     {mounted && theme === "dark" ? t("lightMode") : t("darkMode")}
                   </button>
-                  
+
+                  <div className="border-t border-gray-100 dark:border-gray-700 mt-1 pt-1">
+                    <div className="px-3 py-1.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase">
+                      Language
+                    </div>
+                    {locales.map((loc) => (
+                      <button
+                        key={loc}
+                        onClick={() => {
+                          setLocale(loc);
+                          setIsOpen(false);
+                        }}
+                        className={`flex items-center gap-2 w-full px-3 py-2 text-sm transition-colors ${locale === loc
+                          ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                          : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          }`}
+                      >
+                        <Globe className="h-4 w-4" />
+                        {localeNames[loc]}
+                      </button>
+                    ))}
+                  </div>
+
                   <div className="border-t border-gray-100 dark:border-gray-700 mt-1 pt-1">
                     <button
                       onClick={() => {
@@ -189,15 +213,18 @@ export function Navbar({ user }: NavbarProps) {
               )}
             </div>
           </>
+
         )}
+
         {!user && (
           <Link href="/login">
             <Button size="sm">
               {t("signIn")}
             </Button>
           </Link>
+
         )}
-      </div>
+      </div >
 
       {user && user.role !== "admin" && (
         <ShareModal
@@ -206,7 +233,8 @@ export function Navbar({ user }: NavbarProps) {
           userId={user.id}
           userName={user.name}
         />
-      )}
-    </nav>
+      )
+      }
+    </nav >
   );
 }
