@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Calendar, LogOut, Shield, User, Key, ChevronDown, Share2, Sun, Moon, Globe, Plus, ChevronLeft, ChevronRight, Home } from "lucide-react";
+import { Calendar, LogOut, Shield, User, Key, ChevronDown, Share2, Sun, Moon, Globe, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Home } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
@@ -68,6 +68,15 @@ export function Navbar({ user }: NavbarProps) {
           <Button
             variant="ghost"
             size="sm"
+            onClick={() => navigateCalendar(-28)}
+            className="h-7 w-7 p-0 hover:bg-white dark:hover:bg-gray-700 rounded-md"
+            title="Previous month"
+          >
+            <ChevronsLeft className="h-4 w-4 text-gray-400" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => navigateCalendar(-7)}
             className="h-7 w-7 p-0 hover:bg-white dark:hover:bg-gray-700 rounded-md"
             title="Previous week"
@@ -91,6 +100,15 @@ export function Navbar({ user }: NavbarProps) {
             title="Next week"
           >
             <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigateCalendar(28)}
+            className="h-7 w-7 p-0 hover:bg-white dark:hover:bg-gray-700 rounded-md"
+            title="Next month"
+          >
+            <ChevronsRight className="h-4 w-4 text-gray-400" />
           </Button>
         </div>
         {user && (

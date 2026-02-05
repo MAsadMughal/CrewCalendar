@@ -278,7 +278,7 @@ const ProjectSummaryCell = memo(({
         </div>
       )}
       {bookingCount > 0 && (
-        <span className="text-[10px] font-bold text-white z-[3] pointer-events-none">
+        <span className="text-[10px] font-bold dark:text-black z-[3] pointer-events-none">
           {bookingCount}
         </span>
       )}
@@ -314,11 +314,13 @@ export function CalendarGrid({
 }: CalendarGridProps) {
   const {
     expandedProjects,
+    selectedEmployeeFilters,
     calendarOffset,
     navigateCalendar,
     goToToday,
     goToDate,
   } = useUIStore();
+
   const createBooking = useCreateBooking();
   const deleteBooking = useDeleteBooking();
   const bulkCreate = useBulkCreateBookings();
@@ -337,8 +339,43 @@ export function CalendarGrid({
 
   const { isStatsVisible } = useStatsStore();
 
-  const DATE_HEADER_HEIGHT = isStatsVisible ? 75 : 35;
+  const DATE_HEADER_HEIGHT = isStatsVisible ? 95 : 35;
   const TOTAL_HEADER_HEIGHT = NAV_HEIGHT + MONTH_ROW_HEIGHT + WEEK_ROW_HEIGHT + DATE_HEADER_HEIGHT;
+
+  const calculatedHeight = useMemo(() => {
+    let height = TOTAL_HEADER_HEIGHT;
+
+    // Use the same filtering logic as the rendered list
+    const shownActiveProjects = selectedEmployeeFilters.length === 0
+      ? projects.filter(p => p.status === "active")
+      : projects.filter(p =>
+        p.status === "active" &&
+        (p.assignedEmployees || []).some(empId => selectedEmployeeFilters.includes(empId))
+      );
+
+    const shownDeliveredProjects = projects.filter(p => p.status === "delivered");
+
+    shownActiveProjects.forEach(p => {
+      height += ROW_HEIGHT;
+      if (expandedProjects.includes(p.id)) {
+        height += (p.assignedEmployees?.length || 0) * EMPLOYEE_ROW_HEIGHT;
+      }
+    });
+
+    if (shownDeliveredProjects.length > 0) {
+      height += 29; // Delivered section divider row
+      shownDeliveredProjects.forEach(p => {
+        height += ROW_HEIGHT;
+        if (expandedProjects.includes(p.id)) {
+          const assignedCount = (p.assignedEmployees || []).length;
+          height += assignedCount > 0 ? assignedCount * EMPLOYEE_ROW_HEIGHT : EMPLOYEE_ROW_HEIGHT;
+        }
+      });
+    }
+
+    // Add a bit of bottom padding to ensure the last row isn't cut off and sticky has room
+    return height + 30;
+  }, [projects, expandedProjects, selectedEmployeeFilters, TOTAL_HEADER_HEIGHT, isStatsVisible]);
 
   const effectiveToday = useMemo(() => getEffectiveToday(), []);
 
@@ -541,9 +578,14 @@ export function CalendarGrid({
       className="flex flex-col select-none"
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
-      style={{ minWidth: dates.length * CELL_WIDTH, width: "fit-content" }}
+      style={{
+        minWidth: dates.length * CELL_WIDTH,
+        width: "fit-content",
+        height: calculatedHeight,
+        minHeight: "100vh"
+      }}
     >
-      <div className="scroll-mt-20 bg-white dark:bg-gray-800 border-b dark:border-gray-700 sticky top-0 z-30">
+      <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 sticky top-0 z-30">
         {(() => {
           const monthGroups: any[] = [];
           const weekGroups: any[] = [];
@@ -587,10 +629,16 @@ export function CalendarGrid({
               <div key={dateStr} className={cn("shrink-0 text-center text-xs flex flex-col justify-start pt-1 bg-white dark:bg-gray-800", getDay(date) === 5 ? "border-r-2 border-gray-300 dark:border-gray-600" : "border-r border-gray-200 dark:border-gray-700", isToday && "bg-purple-100/60 dark:bg-purple-900/40 border-l border-purple-200/50 dark:border-purple-800/50", holidayMap.has(dateStr) && "bg-red-50 dark:bg-red-900/30")} style={{ width: CELL_WIDTH }}>
                 <div className={cn("text-sm font-bold leading-none mt-0.5", isToday ? "text-purple-700 dark:text-purple-400" : "text-gray-900 dark:text-gray-100")}>{format(date, "d")}</div>
                 {isStatsVisible && (
-                  <div className="space-y-0 text-[8px] leading-tight mt-1">
-                    <div className="text-green-600 dark:text-green-400 font-medium">B:{metrics.bookedCount}</div>
-                    <div className="text-orange-600 dark:text-orange-400 font-medium">A:{metrics.absentCount}</div>
-                    <div className="text-blue-600 dark:text-blue-400 font-medium">U:{metrics.unassignedCount}</div>
+                  <div className="flex flex-col mt-2 border-t border-gray-200 dark:border-gray-700 w-full">
+                    <div className="h-[18px] border-b border-gray-100 dark:border-gray-800 flex items-center justify-center text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                      <span className="bg-emerald-50 dark:bg-emerald-900/30 px-1 rounded min-w-[16px] text-center leading-none">{metrics.bookedCount}</span>
+                    </div>
+                    <div className="h-[18px] border-b border-gray-100 dark:border-gray-800 flex items-center justify-center text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                      <span className="bg-amber-50 dark:bg-amber-900/30 px-1 rounded min-w-[16px] text-center leading-none">{metrics.absentCount}</span>
+                    </div>
+                    <div className="h-[18px] border-b border-gray-100 dark:border-gray-800 flex items-center justify-center text-[10px] font-bold text-sky-600 dark:text-sky-400">
+                      <span className="bg-sky-50 dark:bg-sky-900/30 px-1 rounded min-w-[16px] text-center leading-none">{metrics.unassignedCount}</span>
+                    </div>
                   </div>
                 )}
               </div>
@@ -757,7 +805,7 @@ export function CalendarGrid({
                       })}
                     </div>
                   ))}
-                  {isExpanded && assignedEmployees.length === 0 && (
+                  {/* {isExpanded && assignedEmployees.length === 0 && (
                     <div className="flex" style={{ height: EMPLOYEE_ROW_HEIGHT }}>
                       {dates.map((date, i) => (
                         <div
@@ -771,7 +819,7 @@ export function CalendarGrid({
                         />
                       ))}
                     </div>
-                  )}
+                  )} */}
                 </div>
               );
             })}

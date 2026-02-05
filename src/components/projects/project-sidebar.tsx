@@ -4,7 +4,7 @@ import { useState, memo, useMemo, useRef, useCallback, useEffect } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { ChevronDown, ChevronRight, GripVertical, Edit, Trash2, User, Plus, Filter, Check, X, Users, FolderKanban, Calendar, ChevronsUpDown, Eye, Search } from "lucide-react";
+import { ChevronDown, ChevronRight, GripVertical, Edit, Trash2, User, Plus, Filter, Check, X, Users, FolderKanban, Calendar, ChevronsUpDown, Eye, Search, BarChart3 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { Project, Employee, Booking } from "@shared/schema";
 import { cn } from "@/lib/utils";
@@ -43,8 +43,42 @@ export function ProjectSidebar({ projects, employees, bookings }: ProjectSidebar
   const tCommon = useTranslations("common");
 
   // Dynamic height based on stats visibility - reduced to save more space
-  const DATE_HEADER_HEIGHT = isStatsVisible ? 75 : 35;
+  const DATE_HEADER_HEIGHT = isStatsVisible ? 95 : 35;
   const TOTAL_HEADER_HEIGHT = NAV_HEIGHT + MONTH_ROW_HEIGHT + WEEK_ROW_HEIGHT + DATE_HEADER_HEIGHT;
+
+  const calculatedHeight = useMemo(() => {
+    let height = TOTAL_HEADER_HEIGHT;
+
+    // Use the same filtering logic as the rendered list
+    const shownActiveProjects = selectedEmployeeFilters.length === 0
+      ? projects.filter(p => p.status === "active")
+      : projects.filter(p =>
+        p.status === "active" &&
+        (p.assignedEmployees || []).some(empId => selectedEmployeeFilters.includes(empId))
+      );
+
+    const shownDeliveredProjects = projects.filter(p => p.status === "delivered");
+
+    shownActiveProjects.forEach(p => {
+      height += ROW_HEIGHT;
+      if (expandedProjects.includes(p.id)) {
+        height += (p.assignedEmployees?.length || 0) * EMPLOYEE_ROW_HEIGHT;
+      }
+    });
+
+    if (shownDeliveredProjects.length > 0) {
+      height += 29; // Delivered section divider row
+      shownDeliveredProjects.forEach(p => {
+        height += ROW_HEIGHT;
+        if (expandedProjects.includes(p.id)) {
+          const assignedCount = (p.assignedEmployees || []).length;
+          height += assignedCount > 0 ? assignedCount * EMPLOYEE_ROW_HEIGHT : EMPLOYEE_ROW_HEIGHT;
+        }
+      });
+    }
+
+    return height + 30;
+  }, [projects, expandedProjects, selectedEmployeeFilters, TOTAL_HEADER_HEIGHT, isStatsVisible]);
 
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [filterSearch, setFilterSearch] = useState("");
@@ -123,7 +157,13 @@ export function ProjectSidebar({ projects, employees, bookings }: ProjectSidebar
   }, [handleFilterModalDragStart, handleFilterModalDrag, handleFilterModalDragEnd]);
 
   return (
-    <div className="w-[250px] min-w-[250px] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col sticky left-0 z-40">
+    <div
+      className="w-[250px] min-w-[250px] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col sticky left-0 z-40"
+      style={{
+        height: calculatedHeight,
+        minHeight: "100vh"
+      }}
+    >
       <div
         className="flex flex-col border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 sticky top-0 z-50"
         style={{ height: TOTAL_HEADER_HEIGHT }}
@@ -191,10 +231,10 @@ export function ProjectSidebar({ projects, employees, bookings }: ProjectSidebar
         </div>
 
         <div
-          className="flex flex-col justify-center px-2 py-1"
+          className="flex flex-col justify-start px-2 pt-1"
           style={{ height: DATE_HEADER_HEIGHT }}
         >
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between h-5">
             <div className="flex items-center gap-2">
               <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
                 {t("projects")} ({filteredActiveProjects.length})
@@ -204,15 +244,15 @@ export function ProjectSidebar({ projects, employees, bookings }: ProjectSidebar
                 size="sm"
                 onClick={toggleStats}
                 className={cn(
-                  "h-5 px-1.5 text-[10px] gap-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded",
-                  isStatsVisible ? "text-blue-600 bg-blue-50 dark:bg-blue-900/30" : "text-gray-400"
+                  "h-6 px-2 text-[10px] gap-1.5 font-medium transition-all rounded-md",
+                  isStatsVisible
+                    ? "text-blue-600 bg-blue-50 dark:bg-blue-900/30"
+                    : "text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                 )}
-                title={isStatsVisible ? "Hide Stats (B:A:U:)" : "Show Stats (B:A:U:)"}
+                title={isStatsVisible ? "Hide Availability Statistics" : "Show Availability Statistics"}
               >
-                <div className="flex items-center gap-1">
-                  <span className="font-bold">B:A:U:</span>
-                  {isStatsVisible ? <Eye className="h-3 w-3" /> : <Eye className="h-3 w-3 opacity-50" />}
-                </div>
+                <BarChart3 className="h-3 w-3" />
+                <span>{isStatsVisible ? "Stats On" : "Stats Off"}</span>
               </Button>
             </div>
             <Button
@@ -225,6 +265,14 @@ export function ProjectSidebar({ projects, employees, bookings }: ProjectSidebar
               <ChevronsUpDown className="h-3 w-3" />
             </Button>
           </div>
+
+          {isStatsVisible && (
+            <div className="flex flex-col mt-2 border-t border-gray-200 dark:border-gray-700">
+              <div className="h-[18px] border-b border-gray-100 dark:border-gray-800 flex items-center text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-tight">Booked</div>
+              <div className="h-[18px] border-b border-gray-100 dark:border-gray-800 flex items-center text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-tight">Absent</div>
+              <div className="h-[18px] border-b border-gray-100 dark:border-gray-800 flex items-center text-[10px] font-bold text-sky-600 dark:text-sky-400 uppercase tracking-tight">Unassigned</div>
+            </div>
+          )}
         </div>
       </div>
       <div>
