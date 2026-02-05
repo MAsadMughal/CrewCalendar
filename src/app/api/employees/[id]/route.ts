@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { employees, bookings } from "@shared/schema";
+import { employees, bookings, projects } from "@shared/schema";
 import { eq, and, inArray } from "drizzle-orm";
 
 export async function GET(
@@ -10,7 +10,7 @@ export async function GET(
   try {
     const { id } = await params;
     const [employee] = await db.select().from(employees).where(eq(employees.id, id));
-    
+
     if (!employee) {
       return NextResponse.json({ error: "Employee not found" }, { status: 404 });
     }
@@ -33,14 +33,14 @@ export async function PATCH(
     // Get current employee to find new absences
     const [currentEmployee] = await db.select().from(employees).where(eq(employees.id, id));
     const oldAbsences = new Set(currentEmployee?.plannedAbsences || []);
-    
+
     // Validate plannedAbsences are valid date strings (YYYY-MM-DD)
     if (body.plannedAbsences) {
       const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
       const invalidDates = body.plannedAbsences.filter((d: string) => !dateRegex.test(d));
       if (invalidDates.length > 0) {
-        return NextResponse.json({ 
-          error: `Invalid date format. Use YYYY-MM-DD. Invalid: ${invalidDates.join(', ')}` 
+        return NextResponse.json({
+          error: `Invalid date format. Use YYYY-MM-DD. Invalid: ${invalidDates.join(', ')}`
         }, { status: 400 });
       }
     }
@@ -60,7 +60,11 @@ export async function PATCH(
       await db.delete(bookings).where(
         and(
           eq(bookings.employeeId, id),
-          inArray(bookings.date, newAbsences)
+          inArray(bookings.date, newAbsences),
+          inArray(
+            bookings.projectId,
+            db.select({ id: projects.id }).from(projects).where(eq(projects.status, "active"))
+          )
         )
       );
     }

@@ -108,7 +108,8 @@ const CalendarCell = memo(({
   onMouseDown,
   onMouseEnter,
 }: CalendarCellProps) => {
-  const canBook = !holiday && !isAbsent && !otherBooking && inProjectRange;
+  const isDelivered = project.status === "delivered";
+  const canBook = !holiday && !isAbsent && !otherBooking && inProjectRange && !isDelivered;
 
   const isContractStart = project.contractStartDate === dateStr;
   const isContractEnd = project.contractEndDate === dateStr;
@@ -125,9 +126,10 @@ const CalendarCell = memo(({
         isFriday ? "border-r-2 border-gray-300 dark:border-gray-600" : "border-r border-gray-200 dark:border-gray-700",
         canBook && "cursor-pointer",
         holiday && "bg-red-100 dark:bg-red-900/30 cursor-not-allowed",
+        isToday && !inProjectRange && "bg-purple-100/60 dark:bg-purple-900/40 border-l border-purple-200/50 dark:border-purple-800/50",
         !inProjectRange && !holiday && !isToday && "bg-gray-100 dark:bg-gray-900 cursor-not-allowed",
         isAbsent && inProjectRange && !holiday && "bg-orange-100 dark:bg-orange-900/30 cursor-not-allowed striped-bg",
-        !isBooked && !otherBooking && isToday && "bg-purple-100/60 dark:bg-purple-900/40 border-l border-purple-200/50 dark:border-purple-800/50",
+        !isBooked && !otherBooking && isToday && !isDelivered && !holiday && "bg-purple-100/60 dark:bg-purple-900/40 border-l border-purple-200/50 dark:border-purple-800/50",
         !inProjectRange && !holiday && !isAbsent && !isToday && "bg-gray-100 dark:bg-gray-900 cursor-not-allowed",
         (isBooked || otherBooking) && "cursor-pointer",
         otherBooking && inProjectRange && "bg-gray-200 dark:bg-gray-700 cursor-not-allowed",
@@ -141,12 +143,13 @@ const CalendarCell = memo(({
         backgroundColor: isBooked && !isSelected ? employeeTeamColor || "#3b82f6" : undefined,
       }}
       title={
-        !inProjectRange ? "Outside project dates"
+        isDelivered ? "Delivered project (Read-only)"
           : holiday ? `Holiday: ${holiday.name}`
-            : isAbsent ? "Employee absent"
-              : otherBooking ? "Booked on another project"
-                : isBooked ? "Drag to unbook range"
-                  : "Drag to book range"
+            : !inProjectRange ? "Outside project dates"
+              : isAbsent ? "Employee absent"
+                : otherBooking ? "Booked on another project"
+                  : isBooked ? "Drag to unbook range"
+                    : "Drag to book range"
       }
     >
       {isContractStart && <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500/50 z-[1]" />}
@@ -213,11 +216,23 @@ const ProjectSummaryCell = memo(({
 
   return (
     <div
+      title={isDelivered ? "Delivered project (Read-only)"
+        : holiday ? `Holiday: ${holiday.name}`
+          : (isContractStart || isContractEnd || isInternalStart || isInternalEnd || isDeliveryDate)
+            ? [
+              isContractStart && "Contract Start",
+              isContractEnd && "Contract End",
+              isInternalStart && "Internal Start",
+              isInternalEnd && "Internal End",
+              isDeliveryDate && "Delivery Date",
+            ].filter(Boolean).join(" & ")
+            : !isInProjectRange ? "Outside project dates"
+              : "Project Summary"}
       className={cn(
         "shrink-0 relative flex items-center justify-center",
         isFriday ? "border-r-2 border-gray-300 dark:border-gray-600" : "border-r border-gray-200 dark:border-gray-700",
-        holiday && "bg-red-100 dark:bg-red-900/30",
-        isToday && !holiday && "bg-purple-100/60 dark:bg-purple-900/40 border-l border-purple-200/50 dark:border-purple-800/50",
+        holiday && "bg-red-100 dark:bg-red-900/30 cursor-not-allowed",
+        isToday && !holiday && !isDelivered && "bg-purple-100/60 dark:bg-purple-900/40 border-l border-purple-200/50 dark:border-purple-800/50",
         !isInProjectRange && !holiday && !isToday && "bg-gray-100 dark:bg-gray-800",
       )}
       style={{
@@ -238,6 +253,7 @@ const ProjectSummaryCell = memo(({
                   ? "linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.2) 50%, rgba(16, 185, 129, 0.1) 100%)"
                   : "linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.2) 50%, rgba(59, 130, 246, 0.1) 100%)",
           }}
+
         />
       )}
       {isContractStart && <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 z-[1]" />}
@@ -503,12 +519,14 @@ export function CalendarGrid({
       }
     });
 
-    const absentCount = employees.filter(e => isEmployeeAbsent(dateStr, e)).length;
-
     const allAssignedEmployeeIds = new Set<string>();
     activeProjects.forEach(p => {
       (p.assignedEmployees || []).forEach(empId => allAssignedEmployeeIds.add(empId));
     });
+
+    const absentCount = employees.filter(e =>
+      allAssignedEmployeeIds.has(e.id) && isEmployeeAbsent(dateStr, e)
+    ).length;
 
     const unassignedCount = Array.from(allAssignedEmployeeIds).filter(empId => {
       const emp = employeeMap.get(empId);
@@ -525,7 +543,7 @@ export function CalendarGrid({
       onMouseLeave={handleMouseUp}
       style={{ minWidth: dates.length * CELL_WIDTH, width: "fit-content" }}
     >
-      <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 sticky top-0 z-30">
+      <div className="scroll-mt-20 bg-white dark:bg-gray-800 border-b dark:border-gray-700 sticky top-0 z-30">
         {(() => {
           const monthGroups: any[] = [];
           const weekGroups: any[] = [];
@@ -638,7 +656,7 @@ export function CalendarGrid({
                     })}
                   </div>
                 ))}
-                {isExpanded && assignedEmployees.length === 0 && (
+                {/* {isExpanded && assignedEmployees.length === 0 && (
                   <div className="flex" style={{ height: EMPLOYEE_ROW_HEIGHT }}>
                     {dates.map((date, i) => (
                       <div
@@ -653,7 +671,7 @@ export function CalendarGrid({
                       />
                     ))}
                   </div>
-                )}
+                )} */}
               </div>
             );
           })}
@@ -668,6 +686,26 @@ export function CalendarGrid({
             {projects.filter(p => p.status === "delivered").map(project => {
               const isExpanded = expandedProjects.includes(project.id);
               const assignedEmployees = employees.filter(e => (project.assignedEmployees || []).includes(e.id));
+
+              // Handle snapshots for delivered projects
+              const snapshotHolidays = project.snapshotHolidays ? JSON.parse(project.snapshotHolidays as string) : null;
+              const snapshotAbsences = project.snapshotAbsences ? JSON.parse(project.snapshotAbsences as string) : null;
+
+              const getProjectHoliday = (dateStr: string) => {
+                if (snapshotHolidays) {
+                  return snapshotHolidays.find((h: any) => h.date === dateStr);
+                }
+                return holidayMap.get(dateStr);
+              };
+
+              const isProjectEmployeeAbsent = (dateStr: string, employeeId: string) => {
+                if (snapshotAbsences && snapshotAbsences[employeeId]) {
+                  return snapshotAbsences[employeeId].includes(dateStr);
+                }
+                const employee = employeeMap.get(employeeId);
+                return employee ? isEmployeeAbsent(dateStr, employee) : false;
+              };
+
               return (
                 <div key={project.id} className="border-b border-amber-100 dark:border-amber-900/30 bg-amber-50/30">
                   <div className="flex">
@@ -681,7 +719,7 @@ export function CalendarGrid({
                           bookingCount={(bookingMap.get(`${dateStr}:${project.id}`) || []).length}
                           totalAssigned={assignedEmployees.length}
                           isToday={isSameDay(date, today)}
-                          holiday={holidayMap.get(dateStr)}
+                          holiday={getProjectHoliday(dateStr)}
                           isFriday={getDay(date) === 5}
                           teamColor={getTeamColorForDate(dateStr, project.id, bookings, employees)}
                         />
@@ -707,9 +745,9 @@ export function CalendarGrid({
                             otherBooking={otherBooking && otherBooking.projectId !== project.id ? otherBooking : undefined}
                             isSelected={isInSelection(date, project.id, employee.id)}
                             isToday={isSameDay(date, today)}
-                            holiday={holidayMap.get(dateStr)}
+                            holiday={getProjectHoliday(dateStr)}
                             isFriday={getDay(date) === 5}
-                            isAbsent={isEmployeeAbsent(dateStr, employee)}
+                            isAbsent={isProjectEmployeeAbsent(dateStr, employee.id)}
                             inProjectRange={isDateInProjectRange(date, project)}
                             dragMode={dragState.mode}
                             onMouseDown={(d, b) => handleMouseDown(d, project.id, employee.id, b, project)}

@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json();
   const { userId, ...holidayData } = body;
-  
+
   if (!userId) {
     return NextResponse.json({ error: "userId required" }, { status: 400 });
   }
@@ -48,8 +48,8 @@ export async function POST(request: NextRequest) {
     const userProjects = await db
       .select()
       .from(projects)
-      .where(eq(projects.userId, userId));
-    
+      .where(and(eq(projects.userId, userId), eq(projects.status, "active")));
+
     if (userProjects.length > 0) {
       await db
         .delete(bookings)

@@ -17,24 +17,24 @@ export async function PATCH(
   const body = await request.json();
 
   const updateData: Record<string, unknown> = { updatedAt: new Date() };
-  
+
   if (body.name !== undefined) updateData.name = body.name;
   if (body.teamColor !== undefined) updateData.teamColor = body.teamColor;
   if (body.plannedAbsences !== undefined) {
     updateData.plannedAbsences = body.plannedAbsences;
-    
+
     const employee = await db
       .select()
       .from(employees)
       .where(eq(employees.id, employeeId))
       .limit(1);
-    
+
     if (employee[0] && body.plannedAbsences.length > 0) {
       const userProjects = await db
         .select()
         .from(projects)
-        .where(eq(projects.userId, employee[0].userId));
-      
+        .where(and(eq(projects.userId, employee[0].userId), eq(projects.status, "active")));
+
       if (userProjects.length > 0) {
         await db
           .delete(bookings)
@@ -74,7 +74,7 @@ export async function DELETE(
   const { employeeId } = await params;
 
   await db.delete(bookings).where(eq(bookings.employeeId, employeeId));
-  
+
   const [deletedEmployee] = await db
     .delete(employees)
     .where(eq(employees.id, employeeId))

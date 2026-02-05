@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { useUIStore } from "@/stores/ui-store";
 import { useProject, useCreateProject, useUpdateProject } from "@/hooks/use-projects";
 import { projectSchema, type ProjectFormData } from "@shared/validations";
-import { toDateString } from "@/lib/utils";
+import { cn, toDateString } from "@/lib/utils";
 
 export function ProjectModal() {
   const { isProjectModalOpen, editingProject, closeProjectModal } = useUIStore();
@@ -45,7 +45,7 @@ export function ProjectModal() {
     const isValid = deliveryDate > maxEndDate;
     return {
       isValid,
-      message: isValid 
+      message: isValid
         ? t("validAfterBothEndDates")
         : t("mustBeAfter", { date: maxEndDate })
     };
@@ -77,7 +77,11 @@ export function ProjectModal() {
     }
   }, [project, reset, isProjectModalOpen, todayStr]);
 
+  const isDelivered = project?.status === "delivered";
+
   const onSubmit = (data: ProjectFormData) => {
+    if (isDelivered) return;
+
     const submitData = {
       ...data,
       deliveryDate: data.status === "delivered" ? data.deliveryDate : null,
@@ -100,30 +104,40 @@ export function ProjectModal() {
     <>
       <Dialog open={isProjectModalOpen} onOpenChange={closeProjectModal}>
         <DraggableDialogContent className="w-[95vw] max-w-[500px] p-0 gap-0 overflow-hidden">
-          <DialogHeader className="px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+          <DialogHeader className={cn(
+            "px-6 py-4 text-white transition-colors duration-300",
+            isDelivered ? "bg-gradient-to-r from-gray-600 to-slate-700" : "bg-gradient-to-r from-blue-600 to-indigo-600"
+          )}>
             <div className="flex items-center gap-3">
               <div className="p-2 bg-white/20 rounded-lg">
                 <FolderKanban className="h-5 w-5" />
               </div>
               <div>
                 <DialogTitle className="text-lg font-semibold text-white">
-                  {editingProject ? t("editProject") : t("createProject")}
+                  {isDelivered
+                    ? t("projectDetails")
+                    : editingProject ? t("editProject") : t("createProject")
+                  }
                 </DialogTitle>
-                <DialogDescription className="text-blue-100 text-sm">
-                  {editingProject ? t("editDescription") : t("createDescription")}
+                <DialogDescription className="text-blue-100 text-sm opacity-90">
+                  {isDelivered
+                    ? t("deliveredDescription")
+                    : editingProject ? t("editDescription") : t("createDescription")
+                  }
                 </DialogDescription>
               </div>
             </div>
           </DialogHeader>
-          
+
           <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-5">
             <div className="space-y-2">
               <Label htmlFor="name" className="text-sm font-medium text-gray-700">{t("projectName")}</Label>
-              <Input 
-                id="name" 
-                {...register("name")} 
+              <Input
+                id="name"
+                {...register("name")}
                 placeholder={t("enterProjectName")}
                 className="h-11"
+                readOnly={isDelivered}
               />
               {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
             </div>
@@ -133,21 +147,23 @@ export function ProjectModal() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="contractStartDate" className="text-xs text-gray-500">{tCommon("start")}</Label>
-                  <Input 
-                    id="contractStartDate" 
-                    type="date" 
+                  <Input
+                    id="contractStartDate"
+                    type="date"
                     {...register("contractStartDate")}
                     className="h-10"
+                    readOnly={isDelivered}
                   />
                   {errors.contractStartDate && <p className="text-red-500 text-xs">{errors.contractStartDate.message}</p>}
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="contractEndDate" className="text-xs text-gray-500">{tCommon("end")}</Label>
-                  <Input 
-                    id="contractEndDate" 
-                    type="date" 
+                  <Input
+                    id="contractEndDate"
+                    type="date"
                     {...register("contractEndDate")}
                     className="h-10"
+                    readOnly={isDelivered}
                   />
                   {errors.contractEndDate && <p className="text-red-500 text-xs">{errors.contractEndDate.message}</p>}
                 </div>
@@ -159,21 +175,23 @@ export function ProjectModal() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="internalStartDate" className="text-xs text-gray-500">{tCommon("start")}</Label>
-                  <Input 
-                    id="internalStartDate" 
-                    type="date" 
+                  <Input
+                    id="internalStartDate"
+                    type="date"
                     {...register("internalStartDate")}
                     className="h-10"
+                    readOnly={isDelivered}
                   />
                   {errors.internalStartDate && <p className="text-red-500 text-xs">{errors.internalStartDate.message}</p>}
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="internalEndDate" className="text-xs text-gray-500">{tCommon("end")}</Label>
-                  <Input 
-                    id="internalEndDate" 
-                    type="date" 
+                  <Input
+                    id="internalEndDate"
+                    type="date"
                     {...register("internalEndDate")}
                     className="h-10"
+                    readOnly={isDelivered}
                   />
                   {errors.internalEndDate && <p className="text-red-500 text-xs">{errors.internalEndDate.message}</p>}
                 </div>
@@ -185,7 +203,8 @@ export function ProjectModal() {
               <select
                 id="status"
                 {...register("status")}
-                className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                disabled={isDelivered}
+                className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-70 disabled:bg-gray-50 cursor-not-allowed"
               >
                 <option value="active">{t("active")}</option>
                 <option value="delivered">{t("delivered")}</option>
@@ -193,9 +212,15 @@ export function ProjectModal() {
             </div>
 
             {status === "delivered" && (
-              <div className="space-y-2 p-4 bg-amber-50 rounded-lg border border-amber-200">
+              <div className={cn(
+                "space-y-2 p-4 rounded-lg border transition-colors",
+                isDelivered ? "bg-gray-50 border-gray-200" : "bg-amber-50 border-amber-200"
+              )}>
                 <div className="flex items-center gap-2">
-                  <Label htmlFor="deliveryDate" className="text-sm font-medium text-amber-800">
+                  <Label htmlFor="deliveryDate" className={cn(
+                    "text-sm font-medium",
+                    isDelivered ? "text-gray-700" : "text-amber-800"
+                  )}>
                     {t("deliveryDate")}
                   </Label>
                   {deliveryDate && (
@@ -210,11 +235,12 @@ export function ProjectModal() {
                     )
                   )}
                 </div>
-                <Input 
-                  id="deliveryDate" 
-                  type="date" 
+                <Input
+                  id="deliveryDate"
+                  type="date"
                   {...register("deliveryDate")}
                   className="h-10 bg-white"
+                  readOnly={isDelivered}
                 />
                 {errors.deliveryDate && <p className="text-red-500 text-xs">{errors.deliveryDate.message}</p>}
                 {deliveryDate && !deliveryDateValidation.isValid && !errors.deliveryDate && (
@@ -225,16 +251,19 @@ export function ProjectModal() {
 
             <DialogFooter className="pt-4 gap-2 sm:gap-0">
               <Button type="button" variant="outline" onClick={closeProjectModal} className="flex-1 sm:flex-none">
-                {tCommon("cancel")}
+                {isDelivered ? tCommon("close") : tCommon("cancel")}
               </Button>
-              <Button type="submit" disabled={isPending} className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700">
-                {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                {editingProject ? t("updateProject") : t("createProject")}
-              </Button>
+              {!isDelivered && (
+                <Button type="submit" disabled={isPending} className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700">
+                  {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {editingProject ? t("updateProject") : t("createProject")}
+                </Button>
+              )}
             </DialogFooter>
           </form>
         </DraggableDialogContent>
       </Dialog>
     </>
+
   );
 }

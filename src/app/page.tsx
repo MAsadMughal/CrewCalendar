@@ -24,6 +24,7 @@ import {
   DragStartEvent,
   pointerWithin,
   rectIntersection,
+  closestCenter,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -169,7 +170,7 @@ export default function HomePage() {
     <DndContext
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
-      collisionDetection={pointerWithin}
+      collisionDetection={closestCenter}
     >
       <div className="min-h-screen h-screen flex flex-col bg-gray-50 dark:bg-gray-900 overflow-hidden">
         <Navbar user={user} />

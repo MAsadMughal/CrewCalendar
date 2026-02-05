@@ -59,25 +59,66 @@ export function useCreateProject() {
       }
       return res.json();
     },
-    onSuccess: (newProject) => {
+    onMutate: async (newProjectData) => {
       const queryKey = isAdmin ? ["admin-projects", targetUserId] : ["projects"];
       const dashboardKey = isAdmin ? ["admin-dashboard", targetUserId] : ["dashboard"];
-      queryClient.invalidateQueries({ queryKey });
-      queryClient.invalidateQueries({ queryKey: dashboardKey });
+
+      await queryClient.cancelQueries({ queryKey });
+      await queryClient.cancelQueries({ queryKey: dashboardKey });
+
+      const previousProjects = queryClient.getQueryData<Project[]>(queryKey);
+      const previousDashboard = queryClient.getQueryData<any>(dashboardKey);
+
+      const tempProject: Project = {
+        ...newProjectData,
+        id: `temp-${Date.now()}`,
+        status: newProjectData.status || "active",
+        assignedEmployees: newProjectData.assignedEmployees || [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        userId: targetUserId || "current",
+      } as Project;
+
+      if (previousProjects) {
+        queryClient.setQueryData(queryKey, [...previousProjects, tempProject]);
+      }
+
+      if (previousDashboard) {
+        queryClient.setQueryData(dashboardKey, {
+          ...previousDashboard,
+          projects: [...previousDashboard.projects, tempProject],
+        });
+      }
+
+      return { previousProjects, previousDashboard, queryKey, dashboardKey };
+    },
+    onSuccess: (newProject, variables, context) => {
       toast({ title: "Project created successfully" });
 
       if (isAdmin && pushUndo) {
         pushUndo({
           description: `Created project "${newProject.name}"`,
           undoFn: async () => {
-            await fetch(`/api/admin/proxy/projects/${newProject.id}`, { method: "DELETE" });
-            queryClient.invalidateQueries({ queryKey });
+            const url = isAdmin ? `/api/admin/proxy/projects/${newProject.id}` : `/api/projects/${newProject.id}`;
+            await fetch(url, { method: "DELETE" });
+            queryClient.invalidateQueries({ queryKey: context.queryKey });
+            queryClient.invalidateQueries({ queryKey: context.dashboardKey });
           },
         });
       }
     },
-    onError: (error: Error) => {
+    onError: (error: Error, variables, context) => {
+      if (context) {
+        queryClient.setQueryData(context.queryKey, context.previousProjects);
+        queryClient.setQueryData(context.dashboardKey, context.previousDashboard);
+      }
       toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+    onSettled: (data, error, variables, context) => {
+      if (context) {
+        queryClient.invalidateQueries({ queryKey: context.queryKey });
+        queryClient.invalidateQueries({ queryKey: context.dashboardKey });
+      }
     },
   });
 }
@@ -107,15 +148,50 @@ export function useUpdateProject() {
       }
       return res.json();
     },
-    onSuccess: (_, variables) => {
+    onMutate: async (variables) => {
+      const { id, ...data } = variables;
       const queryKey = isAdmin ? ["admin-projects", targetUserId] : ["projects"];
       const dashboardKey = isAdmin ? ["admin-dashboard", targetUserId] : ["dashboard"];
-      queryClient.invalidateQueries({ queryKey });
-      queryClient.invalidateQueries({ queryKey: dashboardKey });
+
+      await queryClient.cancelQueries({ queryKey });
+      await queryClient.cancelQueries({ queryKey: dashboardKey });
+
+      const previousProjects = queryClient.getQueryData<Project[]>(queryKey);
+      const previousDashboard = queryClient.getQueryData<any>(dashboardKey);
+
+      if (previousProjects) {
+        queryClient.setQueryData(
+          queryKey,
+          previousProjects.map((p) => (p.id === id ? { ...p, ...data } : p))
+        );
+      }
+
+      if (previousDashboard) {
+        queryClient.setQueryData(dashboardKey, {
+          ...previousDashboard,
+          projects: previousDashboard.projects.map((p: Project) =>
+            p.id === id ? { ...p, ...data } : p
+          ),
+        });
+      }
+
+      return { previousProjects, previousDashboard, queryKey, dashboardKey };
+    },
+    onSuccess: () => {
       toast({ title: "Project updated successfully" });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, variables, context) => {
+      if (context) {
+        queryClient.setQueryData(context.queryKey, context.previousProjects);
+        queryClient.setQueryData(context.dashboardKey, context.previousDashboard);
+      }
       toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+    onSettled: (data, error, variables, context) => {
+      if (context) {
+        queryClient.invalidateQueries({ queryKey: context.queryKey });
+        queryClient.invalidateQueries({ queryKey: context.dashboardKey });
+      }
     },
   });
 }
@@ -137,15 +213,47 @@ export function useDeleteProject() {
       if (!res.ok) throw new Error("Failed to delete project");
       return res.json();
     },
-    onSuccess: () => {
+    onMutate: async (id) => {
       const queryKey = isAdmin ? ["admin-projects", targetUserId] : ["projects"];
       const dashboardKey = isAdmin ? ["admin-dashboard", targetUserId] : ["dashboard"];
-      queryClient.invalidateQueries({ queryKey });
-      queryClient.invalidateQueries({ queryKey: dashboardKey });
+
+      await queryClient.cancelQueries({ queryKey });
+      await queryClient.cancelQueries({ queryKey: dashboardKey });
+
+      const previousProjects = queryClient.getQueryData<Project[]>(queryKey);
+      const previousDashboard = queryClient.getQueryData<any>(dashboardKey);
+
+      if (previousProjects) {
+        queryClient.setQueryData(
+          queryKey,
+          previousProjects.filter((p) => p.id !== id)
+        );
+      }
+
+      if (previousDashboard) {
+        queryClient.setQueryData(dashboardKey, {
+          ...previousDashboard,
+          projects: previousDashboard.projects.filter((p: Project) => p.id !== id),
+        });
+      }
+
+      return { previousProjects, previousDashboard, queryKey, dashboardKey };
+    },
+    onSuccess: () => {
       toast({ title: "Project deleted successfully" });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, variables, context) => {
+      if (context) {
+        queryClient.setQueryData(context.queryKey, context.previousProjects);
+        queryClient.setQueryData(context.dashboardKey, context.previousDashboard);
+      }
       toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+    onSettled: (data, error, variables, context) => {
+      if (context) {
+        queryClient.invalidateQueries({ queryKey: context.queryKey });
+        queryClient.invalidateQueries({ queryKey: context.dashboardKey });
+      }
     },
   });
 }
@@ -171,11 +279,56 @@ export function useUpdateProjectOrder() {
       if (!res.ok) throw new Error("Failed to update project order");
       return res.json();
     },
-    onSuccess: () => {
+    onMutate: async (projectIds) => {
       const queryKey = isAdmin ? ["admin-projects", targetUserId] : ["projects"];
       const dashboardKey = isAdmin ? ["admin-dashboard", targetUserId] : ["dashboard"];
-      queryClient.invalidateQueries({ queryKey });
-      queryClient.invalidateQueries({ queryKey: dashboardKey });
+
+      await queryClient.cancelQueries({ queryKey });
+      await queryClient.cancelQueries({ queryKey: dashboardKey });
+
+      const previousProjects = queryClient.getQueryData<Project[]>(queryKey);
+      const previousDashboard = queryClient.getQueryData<any>(dashboardKey);
+
+      if (previousProjects) {
+        const sortedProjects = [...previousProjects].sort((a, b) => {
+          const aIndex = projectIds.indexOf(a.id);
+          const bIndex = projectIds.indexOf(b.id);
+          if (aIndex === -1 && bIndex === -1) return 0;
+          if (aIndex === -1) return 1;
+          if (bIndex === -1) return -1;
+          return aIndex - bIndex;
+        });
+        queryClient.setQueryData(queryKey, sortedProjects);
+      }
+
+      if (previousDashboard) {
+        const sortedProjects = [...previousDashboard.projects].sort((a, b) => {
+          const aIndex = projectIds.indexOf(a.id);
+          const bIndex = projectIds.indexOf(b.id);
+          if (aIndex === -1 && bIndex === -1) return 0;
+          if (aIndex === -1) return 1;
+          if (bIndex === -1) return -1;
+          return aIndex - bIndex;
+        });
+        queryClient.setQueryData(dashboardKey, {
+          ...previousDashboard,
+          projects: sortedProjects,
+        });
+      }
+
+      return { previousProjects, previousDashboard, queryKey, dashboardKey };
+    },
+    onError: (error, variables, context) => {
+      if (context) {
+        queryClient.setQueryData(context.queryKey, context.previousProjects);
+        queryClient.setQueryData(context.dashboardKey, context.previousDashboard);
+      }
+    },
+    onSettled: (data, error, variables, context) => {
+      if (context) {
+        queryClient.invalidateQueries({ queryKey: context.queryKey });
+        queryClient.invalidateQueries({ queryKey: context.dashboardKey });
+      }
     },
   });
 }

@@ -23,8 +23,8 @@ export function EmployeePillBar({ employees }: EmployeePillBarProps) {
           <span className="text-sm text-gray-400 dark:text-gray-500">No employees yet</span>
         ) : (
           employees.map((employee) => (
-            <EmployeePill 
-              key={employee.id} 
+            <EmployeePill
+              key={employee.id}
               employee={employee}
               isFiltered={selectedEmployeeFilters.includes(employee.id)}
               onFilterToggle={() => toggleEmployeeFilter(employee.id)}

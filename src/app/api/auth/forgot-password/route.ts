@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     const { email } = validation.data;
 
     const [user] = await db.select().from(users).where(eq(users.email, email));
-    
+
     if (!user) {
       return NextResponse.json({
         message: "If an account exists with this email, you will receive a password reset link.",
@@ -37,11 +37,11 @@ export async function POST(request: NextRequest) {
       })
       .where(eq(users.id, user.id));
 
-    const baseUrl = process.env.APP_BASE_URL 
+    const baseUrl = process.env.APP_BASE_URL
       || (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null)
       || 'http://localhost:5000';
     const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
-
+    console.log(resetUrl)
     console.log("Password reset link:", resetUrl);
 
     return NextResponse.json({

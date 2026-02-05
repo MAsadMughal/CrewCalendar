@@ -30,6 +30,8 @@ export const projects = pgTable("projects", {
   status: varchar("status", { length: 50 }).default("active").notNull(),
   deliveryDate: varchar("delivery_date", { length: 10 }),
   assignedEmployees: text("assigned_employees").array().default([]),
+  snapshotHolidays: text("snapshot_holidays"), // Store as JSON string 
+  snapshotAbsences: text("snapshot_absences"), // Store as JSON string
   sortOrder: varchar("sort_order", { length: 50 }).default("0"),
   userId: varchar("user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),

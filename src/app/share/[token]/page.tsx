@@ -116,24 +116,24 @@ const useWindowSize = () => {
 
   useEffect(() => {
     let debounceTimer: NodeJS.Timeout;
-    
+
     const updateSize = () => {
       setSize({ width: window.innerWidth, height: window.innerHeight });
     };
-    
+
     const debouncedUpdate = () => {
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(updateSize, 50);
     };
-    
+
     const handleOrientationChange = () => {
       setTimeout(updateSize, 100);
     };
-    
+
     updateSize();
     window.addEventListener("resize", debouncedUpdate);
     window.addEventListener("orientationchange", handleOrientationChange);
-    
+
     return () => {
       clearTimeout(debounceTimer);
       window.removeEventListener("resize", debouncedUpdate);
@@ -151,7 +151,7 @@ export default function SharePage() {
   const t = useTranslations("sharePage");
   const tCommon = useTranslations("common");
   const tSidebar = useTranslations("sidebar");
-  
+
   const [data, setData] = useState<ShareData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -165,7 +165,7 @@ export default function SharePage() {
   const [filterSearch, setFilterSearch] = useState("");
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  
+
   const filterModalRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const dragOffset = useRef({ x: 0, y: 0 });
@@ -276,13 +276,13 @@ export default function SharePage() {
   }, [dates]);
 
   const toggleEmployeeFilter = useCallback((id: string) => {
-    setSelectedEmployeeFilters(prev => 
+    setSelectedEmployeeFilters(prev =>
       prev.includes(id) ? prev.filter(e => e !== id) : [...prev, id]
     );
   }, []);
 
   const toggleProjectExpanded = useCallback((id: string) => {
-    setExpandedProjects(prev => 
+    setExpandedProjects(prev =>
       prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
     );
   }, []);
@@ -356,7 +356,7 @@ export default function SharePage() {
       x: clientX - filterModalPosition.x,
       y: clientY - filterModalPosition.y,
     };
-    
+
     const handleMove = (e: MouseEvent | TouchEvent) => {
       const moveX = 'touches' in e ? e.touches[0].clientX : e.clientX;
       const moveY = 'touches' in e ? e.touches[0].clientY : e.clientY;
@@ -365,14 +365,14 @@ export default function SharePage() {
         y: Math.max(0, Math.min(height - 400, moveY - dragOffset.current.y)),
       });
     };
-    
+
     const handleEnd = () => {
       document.removeEventListener('mousemove', handleMove);
       document.removeEventListener('mouseup', handleEnd);
       document.removeEventListener('touchmove', handleMove);
       document.removeEventListener('touchend', handleEnd);
     };
-    
+
     document.addEventListener('mousemove', handleMove);
     document.addEventListener('mouseup', handleEnd);
     document.addEventListener('touchmove', handleMove);
@@ -417,10 +417,10 @@ export default function SharePage() {
 
   const filteredProjects = selectedEmployeeFilters.length > 0
     ? projects.filter((p) =>
-        (p.assignedEmployees || []).some((empId) =>
-          selectedEmployeeFilters.includes(empId)
-        )
+      (p.assignedEmployees || []).some((empId) =>
+        selectedEmployeeFilters.includes(empId)
       )
+    )
     : projects;
 
   const activeProjects = filteredProjects.filter(p => p.status === "active");
@@ -479,7 +479,7 @@ export default function SharePage() {
           <div className="min-w-0">
             <h1 className="text-base md:text-xl font-bold text-gray-900 dark:text-white truncate">CrewCalendar</h1>
             <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 truncate">
-              {shareLink.userName || "Unknown"} 
+              {shareLink.userName || "Unknown"}
               {shareLink.name && <span className="ml-1 text-blue-600 dark:text-blue-400">({shareLink.name})</span>}
             </p>
           </div>
@@ -491,7 +491,7 @@ export default function SharePage() {
       </nav>
 
       <div className="flex-1 flex overflow-hidden relative">
-        <div 
+        <div
           ref={sidebarRef}
           className={cn(
             "bg-white border-r border-gray-200 flex shrink-0 relative",
@@ -509,11 +509,11 @@ export default function SharePage() {
           ) : (
             <>
               <div className="flex flex-col flex-1 overflow-hidden">
-                <div 
+                <div
                   className="flex flex-col border-b border-gray-200 bg-gray-50 shrink-0"
                   style={{ height: totalHeaderHeight }}
                 >
-                  <div 
+                  <div
                     className="flex items-center justify-between border-b border-gray-100 px-2"
                     style={{ height: navHeight }}
                   >
@@ -527,14 +527,14 @@ export default function SharePage() {
                       </button>
                     )}
                   </div>
-                  
-                  <div 
+
+                  <div
                     className="flex items-center justify-center border-b border-gray-100 px-1 md:px-2"
                     style={{ height: monthRowHeight }}
                   >
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => setFilterModalOpen(true)}
                       className={cn(
                         "h-5 text-[9px] md:text-[10px] gap-1 px-1 md:px-2",
@@ -545,139 +545,139 @@ export default function SharePage() {
                       <span className="hidden sm:inline">{hasActiveFilter ? `${selectedEmployeeFilters.length}` : tCommon("filter")}</span>
                     </Button>
                   </div>
-                
-                <div 
-                  className="flex items-center justify-center border-b border-gray-100"
-                  style={{ height: weekRowHeight }}
-                >
-                  <span className="text-[8px] md:text-[9px] text-gray-400">
-                    {activeProjects.length} {tCommon("active")}
-                  </span>
-                </div>
-                
-                <div 
-                  className="flex items-center p-1 md:p-2"
-                  style={{ height: dateHeaderHeight }}
-                >
-                  <h2 className="text-xs md:text-sm font-semibold text-gray-700">
-                    Active ({activeProjects.length})
-                  </h2>
-                </div>
-              </div>
 
-              <div className="overflow-y-auto flex-1 overscroll-contain">
-                {activeProjects.length === 0 ? (
-                  <div className="p-2 md:p-4 text-center text-xs md:text-sm text-gray-400">
-                    {hasActiveFilter ? tCommon("noMatch") : tSidebar("noProjects")}
+                  <div
+                    className="flex items-center justify-center border-b border-gray-100"
+                    style={{ height: weekRowHeight }}
+                  >
+                    <span className="text-[8px] md:text-[9px] text-gray-400">
+                      {activeProjects.length} {tCommon("active")}
+                    </span>
                   </div>
-                ) : (
-                  activeProjects.map((project) => {
-                    const isExpanded = expandedProjects.includes(project.id);
-                    const assignedEmployees = employees.filter(e => 
-                      (project.assignedEmployees || []).includes(e.id)
-                    );
 
-                    return (
-                      <div key={project.id} className="bg-white border-b border-gray-100">
-                        <div 
-                          className="flex items-center gap-1 px-1 md:px-2"
-                          style={{ height: rowHeight }}
-                        >
-                          <button onClick={() => toggleProjectExpanded(project.id)} className="p-0.5 touch-manipulation">
-                            {isExpanded ? (
-                              <ChevronDown className="h-3 w-3 text-gray-500" />
-                            ) : (
-                              <ChevronRightIcon className="h-3 w-3 text-gray-500" />
-                            )}
-                          </button>
-                          
-                          <span className="font-medium text-[10px] md:text-xs text-gray-800 truncate flex-1">
-                            {project.name}
-                          </span>
-                        </div>
+                  <div
+                    className="flex items-center p-1 md:p-2"
+                    style={{ height: dateHeaderHeight }}
+                  >
+                    <h2 className="text-xs md:text-sm font-semibold text-gray-700">
+                      Active ({activeProjects.length})
+                    </h2>
+                  </div>
+                </div>
 
-                        {isExpanded && assignedEmployees.map((employee) => (
-                          <div 
-                            key={employee.id}
-                            className="flex items-center gap-1 md:gap-2 px-1 md:px-2 pl-4 md:pl-6"
-                            style={{ height: employeeRowHeight }}
-                          >
-                            <div 
-                              className="w-2 h-2 rounded-full shrink-0" 
-                              style={{ backgroundColor: employee.teamColor }}
-                            />
-                            <span className="text-[9px] md:text-[11px] text-gray-700 truncate">{employee.name}</span>
-                          </div>
-                        ))}
-                        
-                        {isExpanded && assignedEmployees.length === 0 && (
-                          <div 
-                            className="text-[9px] md:text-[10px] text-gray-400 px-1 md:px-2 pl-4 md:pl-6 italic flex items-center"
-                            style={{ height: employeeRowHeight }}
-                          >
-                            {tSidebar("noEmployees")}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })
-                )}
-
-                {deliveredProjects.length > 0 && (
-                  <>
-                    <div className="px-1 md:px-2 py-1 bg-gray-100 border-y border-gray-200">
-                      <h3 className="text-[9px] md:text-[10px] font-medium text-gray-500 uppercase tracking-wide">
-                        {tSidebar("delivered")} ({deliveredProjects.length})
-                      </h3>
+                <div className="overflow-y-auto flex-1 overscroll-contain">
+                  {activeProjects.length === 0 ? (
+                    <div className="p-2 md:p-4 text-center text-xs md:text-sm text-gray-400">
+                      {hasActiveFilter ? tCommon("noMatch") : tSidebar("noProjects")}
                     </div>
-                    {deliveredProjects.map((project) => {
+                  ) : (
+                    activeProjects.map((project) => {
                       const isExpanded = expandedProjects.includes(project.id);
-                      const assignedEmployees = employees.filter(e => 
+                      const assignedEmployees = employees.filter(e =>
                         (project.assignedEmployees || []).includes(e.id)
                       );
 
                       return (
-                        <div key={project.id} className="bg-amber-50 border-b border-amber-100">
-                          <div 
+                        <div key={project.id} className="bg-white border-b border-gray-100">
+                          <div
                             className="flex items-center gap-1 px-1 md:px-2"
                             style={{ height: rowHeight }}
                           >
                             <button onClick={() => toggleProjectExpanded(project.id)} className="p-0.5 touch-manipulation">
                               {isExpanded ? (
-                                <ChevronDown className="h-3 w-3 text-amber-500" />
+                                <ChevronDown className="h-3 w-3 text-gray-500" />
                               ) : (
-                                <ChevronRightIcon className="h-3 w-3 text-amber-500" />
+                                <ChevronRightIcon className="h-3 w-3 text-gray-500" />
                               )}
                             </button>
-                            
-                            <span className="font-medium text-[10px] md:text-xs text-amber-700 truncate flex-1">
+
+                            <span className="font-medium text-[10px] md:text-xs text-gray-800 truncate flex-1">
                               {project.name}
                             </span>
                           </div>
 
                           {isExpanded && assignedEmployees.map((employee) => (
-                            <div 
+                            <div
                               key={employee.id}
                               className="flex items-center gap-1 md:gap-2 px-1 md:px-2 pl-4 md:pl-6"
                               style={{ height: employeeRowHeight }}
                             >
-                              <div 
-                                className="w-2 h-2 rounded-full shrink-0" 
+                              <div
+                                className="w-2 h-2 rounded-full shrink-0"
                                 style={{ backgroundColor: employee.teamColor }}
                               />
-                              <span className="text-[9px] md:text-[11px] text-amber-600 truncate">{employee.name}</span>
+                              <span className="text-[9px] md:text-[11px] text-gray-700 truncate">{employee.name}</span>
                             </div>
                           ))}
+
+                          {isExpanded && assignedEmployees.length === 0 && (
+                            <div
+                              className="text-[9px] md:text-[10px] text-gray-400 px-1 md:px-2 pl-4 md:pl-6 italic flex items-center"
+                              style={{ height: employeeRowHeight }}
+                            >
+                              {tSidebar("noEmployees")}
+                            </div>
+                          )}
                         </div>
                       );
-                    })}
-                  </>
-                )}
-              </div>
+                    })
+                  )}
+
+                  {deliveredProjects.length > 0 && (
+                    <>
+                      <div className="px-1 md:px-2 py-1 bg-gray-100 border-y border-gray-200">
+                        <h3 className="text-[9px] md:text-[10px] font-medium text-gray-500 uppercase tracking-wide">
+                          {tSidebar("delivered")} ({deliveredProjects.length})
+                        </h3>
+                      </div>
+                      {deliveredProjects.map((project) => {
+                        const isExpanded = expandedProjects.includes(project.id);
+                        const assignedEmployees = employees.filter(e =>
+                          (project.assignedEmployees || []).includes(e.id)
+                        );
+
+                        return (
+                          <div key={project.id} className="bg-amber-50 border-b border-amber-100">
+                            <div
+                              className="flex items-center gap-1 px-1 md:px-2"
+                              style={{ height: rowHeight }}
+                            >
+                              <button onClick={() => toggleProjectExpanded(project.id)} className="p-0.5 touch-manipulation">
+                                {isExpanded ? (
+                                  <ChevronDown className="h-3 w-3 text-amber-500" />
+                                ) : (
+                                  <ChevronRightIcon className="h-3 w-3 text-amber-500" />
+                                )}
+                              </button>
+
+                              <span className="font-medium text-[10px] md:text-xs text-amber-700 truncate flex-1">
+                                {project.name}
+                              </span>
+                            </div>
+
+                            {isExpanded && assignedEmployees.map((employee) => (
+                              <div
+                                key={employee.id}
+                                className="flex items-center gap-1 md:gap-2 px-1 md:px-2 pl-4 md:pl-6"
+                                style={{ height: employeeRowHeight }}
+                              >
+                                <div
+                                  className="w-2 h-2 rounded-full shrink-0"
+                                  style={{ backgroundColor: employee.teamColor }}
+                                />
+                                <span className="text-[9px] md:text-[11px] text-amber-600 truncate">{employee.name}</span>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })}
+                    </>
+                  )}
+                </div>
               </div>
             </>
           )}
-          
+
           {!sidebarCollapsed && (
             <div
               className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-blue-200 transition-colors flex items-center justify-center group z-10"
@@ -1130,7 +1130,7 @@ export default function SharePage() {
                   <X className="h-4 w-4 text-gray-500" />
                 </button>
               </div>
-              
+
               <div className="p-3 border-b">
                 <div className="relative">
                   <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -1156,14 +1156,14 @@ export default function SharePage() {
                             onClick={() => toggleEmployeeFilter(employee.id)}
                             className={cn(
                               "flex items-center gap-1.5 px-2 py-1 rounded-full text-xs transition-all border",
-                              isSelected 
-                                ? "text-white border-transparent shadow-sm" 
+                              isSelected
+                                ? "text-white border-transparent shadow-sm"
                                 : "bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200"
                             )}
                             style={isSelected ? { backgroundColor: employee.teamColor } : undefined}
                           >
                             {!isSelected && (
-                              <div 
+                              <div
                                 className="w-2.5 h-2.5 rounded-full shrink-0"
                                 style={{ backgroundColor: employee.teamColor }}
                               />

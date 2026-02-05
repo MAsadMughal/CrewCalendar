@@ -201,7 +201,9 @@
     "deliveryDate": "Delivery Date",
     "validAfterBothEndDates": "Valid: after both end dates",
     "mustBeAfter": "Must be after {date}",
-    "updateProject": "Update Project"
+    "updateProject": "Update Project",
+    "projectDetails": "Project Details",
+    "deliveredDescription": "This project has been delivered and is now read-only."
   },
   "employeeModal": {
     "addEmployee": "Add Employee",

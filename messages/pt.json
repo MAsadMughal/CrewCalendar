@@ -201,7 +201,9 @@
     "deliveryDate": "Data de Entrega",
     "validAfterBothEndDates": "Válido: após ambas as datas de término",
     "mustBeAfter": "Deve ser após {date}",
-    "updateProject": "Atualizar Projeto"
+    "updateProject": "Atualizar Projeto",
+    "projectDetails": "Detalhes do Projeto",
+    "deliveredDescription": "Este projeto foi entregue e agora é apenas leitura."
   },
   "employeeModal": {
     "addEmployee": "Adicionar Funcionário",

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { holidays, bookings } from "@shared/schema";
-import { eq, asc, inArray } from "drizzle-orm";
+import { holidays, bookings, projects } from "@shared/schema";
+import { eq, and, asc, inArray } from "drizzle-orm";
 import { holidaySchema } from "@shared/validations";
 import { getWeekdayStringsBetween } from "@/lib/utils";
 import { getAuthUser } from "@/lib/auth";
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     const allHolidays = await db.select().from(holidays)
       .where(eq(holidays.userId, user.id))
       .orderBy(asc(holidays.date));
-    
+
     return NextResponse.json(allHolidays);
   } catch (error) {
     console.error("Error fetching holidays:", error);
@@ -35,9 +35,9 @@ export async function POST(request: NextRequest) {
     const validated = holidaySchema.parse(body);
 
     const { name, startDate, endDate } = validated;
-    
+
     const dateStrings = getWeekdayStringsBetween(startDate, endDate || startDate);
-    
+
     const createdHolidays = [];
     for (const dateStr of dateStrings) {
       const [holiday] = await db.insert(holidays).values({
@@ -50,7 +50,13 @@ export async function POST(request: NextRequest) {
 
     if (dateStrings.length > 0) {
       await db.delete(bookings).where(
-        inArray(bookings.date, dateStrings)
+        and(
+          inArray(bookings.date, dateStrings),
+          inArray(
+            bookings.projectId,
+            db.select({ id: projects.id }).from(projects).where(eq(projects.status, "active"))
+          )
+        )
       );
     }
 
