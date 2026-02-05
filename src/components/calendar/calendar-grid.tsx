@@ -547,12 +547,22 @@ export function CalendarGrid({
     const activeProjects = projects.filter((p) => p.status === "active");
     const activeProjectIds = new Set(activeProjects.map(p => p.id));
 
+    // Delivered projects should be excluded from unassigned count
+    const deliveredProjects = projects.filter((p) => p.status === "delivered");
+    const deliveredProjectIds = new Set(deliveredProjects.map(p => p.id));
+
     let bookedCount = 0;
     const bookedEmployeeIds = new Set<string>();
+    const deliveredBookedEmployeeIds = new Set<string>();
+
     bookings.forEach(b => {
-      if (b.date === dateStr && activeProjectIds.has(b.projectId)) {
-        bookedCount++;
-        bookedEmployeeIds.add(b.employeeId);
+      if (b.date === dateStr) {
+        if (activeProjectIds.has(b.projectId)) {
+          bookedCount++;
+          bookedEmployeeIds.add(b.employeeId);
+        } else if (deliveredProjectIds.has(b.projectId)) {
+          deliveredBookedEmployeeIds.add(b.employeeId);
+        }
       }
     });
 
@@ -567,7 +577,9 @@ export function CalendarGrid({
 
     const unassignedCount = Array.from(allAssignedEmployeeIds).filter(empId => {
       const emp = employeeMap.get(empId);
-      return !bookedEmployeeIds.has(empId) && !(emp && isEmployeeAbsent(dateStr, emp));
+      return !bookedEmployeeIds.has(empId) &&
+        !deliveredBookedEmployeeIds.has(empId) &&
+        !(emp && isEmployeeAbsent(dateStr, emp));
     }).length;
 
     return { bookedCount, absentCount, unassignedCount };
