@@ -13,7 +13,7 @@ interface UIState {
   currentDate: Date;
   calendarOffset: number;
   viewAsUserId: string | null;
-  
+
   setSelectedEmployeeFilters: (filters: string[]) => void;
   toggleEmployeeFilter: (employeeId: string) => void;
   toggleProjectExpanded: (projectId: string) => void;
@@ -44,69 +44,69 @@ export const useUIStore = create<UIState>((set) => ({
   currentDate: new Date(),
   calendarOffset: 0,
   viewAsUserId: null,
-  
+
   setSelectedEmployeeFilters: (filters) => set({ selectedEmployeeFilters: filters }),
-  
+
   toggleEmployeeFilter: (employeeId) => set((state) => ({
     selectedEmployeeFilters: state.selectedEmployeeFilters.includes(employeeId)
       ? state.selectedEmployeeFilters.filter(id => id !== employeeId)
       : [...state.selectedEmployeeFilters, employeeId]
   })),
-  
+
   toggleProjectExpanded: (projectId) => set((state) => ({
     expandedProjects: state.expandedProjects.includes(projectId)
       ? state.expandedProjects.filter(id => id !== projectId)
       : [...state.expandedProjects, projectId]
   })),
-  
+
   setExpandedProjects: (projects) => set({ expandedProjects: projects }),
-  
-  openEmployeeModal: (employeeId) => set({ 
-    isEmployeeModalOpen: true, 
-    editingEmployee: employeeId || null 
+
+  openEmployeeModal: (employeeId) => set({
+    isEmployeeModalOpen: true,
+    editingEmployee: employeeId || null
   }),
-  
-  closeEmployeeModal: () => set({ 
-    isEmployeeModalOpen: false, 
-    editingEmployee: null 
+
+  closeEmployeeModal: () => set({
+    isEmployeeModalOpen: false,
+    editingEmployee: null
   }),
-  
-  openProjectModal: (projectId) => set({ 
-    isProjectModalOpen: true, 
-    editingProject: projectId || null 
+
+  openProjectModal: (projectId) => set({
+    isProjectModalOpen: true,
+    editingProject: projectId || null
   }),
-  
-  closeProjectModal: () => set({ 
-    isProjectModalOpen: false, 
-    editingProject: null 
+
+  closeProjectModal: () => set({
+    isProjectModalOpen: false,
+    editingProject: null
   }),
-  
-  openHolidayModal: (holidayId) => set({ 
-    isHolidayModalOpen: true, 
-    editingHoliday: holidayId || null 
+
+  openHolidayModal: (holidayId) => set({
+    isHolidayModalOpen: true,
+    editingHoliday: holidayId || null
   }),
-  
-  closeHolidayModal: () => set({ 
-    isHolidayModalOpen: false, 
-    editingHoliday: null 
+
+  closeHolidayModal: () => set({
+    isHolidayModalOpen: false,
+    editingHoliday: null
   }),
-  
+
   setCurrentDate: (date) => set({ currentDate: date }),
-  
+
   setCalendarOffset: (offset) => set({ calendarOffset: offset }),
-  
-  navigateCalendar: (days) => set((state) => ({ 
-    calendarOffset: state.calendarOffset + days 
+
+  navigateCalendar: (days) => set((state) => ({
+    calendarOffset: state.calendarOffset + days
   })),
-  
+
   goToToday: () => set({ calendarOffset: 0 }),
-  
+
   goToDate: (date) => set(() => {
     const today = startOfDay(new Date());
     const targetDate = startOfDay(date);
     const offset = differenceInDays(targetDate, today);
     return { calendarOffset: offset };
   }),
-  
+
   setViewAsUserId: (userId) => set({ viewAsUserId: userId }),
 }));

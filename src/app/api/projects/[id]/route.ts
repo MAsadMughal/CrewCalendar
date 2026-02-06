@@ -10,7 +10,7 @@ export async function GET(
   try {
     const { id } = await params;
     const [project] = await db.select().from(projects).where(eq(projects.id, id));
-    
+
     if (!project) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
@@ -29,6 +29,29 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
+
+    // Handle snapshotting if project marked as delivered
+    if (body.status === "delivered") {
+      const [currentProject] = await db.select().from(projects).where(eq(projects.id, id));
+      if (currentProject && currentProject.status !== "delivered") {
+        const { holidays, employees: employeeTable } = await import("@shared/schema");
+        const { inArray } = await import("drizzle-orm");
+
+        // Fetch current holiday data
+        const currentHolidays = await db.select().from(holidays).where(eq(holidays.userId, currentProject.userId));
+        body.snapshotHolidays = JSON.stringify(currentHolidays.map(h => ({ name: h.name, date: h.date })));
+
+        // Fetch current absence data for assigned employees
+        if (currentProject.assignedEmployees && currentProject.assignedEmployees.length > 0) {
+          const projectEmployees = await db.select().from(employeeTable).where(inArray(employeeTable.id, currentProject.assignedEmployees));
+          const absenceSnapshot: Record<string, string[]> = {};
+          projectEmployees.forEach(emp => {
+            absenceSnapshot[emp.id] = emp.plannedAbsences || [];
+          });
+          body.snapshotAbsences = JSON.stringify(absenceSnapshot);
+        }
+      }
+    }
 
     const [project] = await db.update(projects)
       .set({ ...body, updatedAt: new Date() })

@@ -201,7 +201,9 @@
     "deliveryDate": "Leveringsdato",
     "validAfterBothEndDates": "Gyldig: efter begge slutdatoer",
     "mustBeAfter": "Skal være efter {date}",
-    "updateProject": "Opdater projekt"
+    "updateProject": "Opdater projekt",
+    "projectDetails": "Projektdetaljer",
+    "deliveredDescription": "Dette projekt er leveret og er nu skrivebeskyttet."
   },
   "employeeModal": {
     "addEmployee": "Tilføj medarbejder",
